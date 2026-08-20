@@ -18,7 +18,7 @@ from datetime import datetime
 
 import librosa
 import streamlit as st
-from transformers import pipeline
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, pipeline
 
 
 DEMO_QUESTION = "Tell me about yourself."
@@ -48,7 +48,16 @@ def load_whisper():
 
 @st.cache_resource(show_spinner=False)
 def load_evaluator():
-	return pipeline("text2text-generation", model="google/flan-t5-base")
+	tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-base")
+	model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-base")
+	return tokenizer, model
+
+
+def generate_text(prompt: str, **generation_options) -> str:
+	tokenizer, model = load_evaluator()
+	inputs = tokenizer(prompt, return_tensors="pt", truncation=True)
+	outputs = model.generate(**inputs, **generation_options)
+	return tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
 
 
 # ----------------------------------------------------------------------
@@ -67,7 +76,6 @@ def transcribe_audio(audio_file) -> str:
 # STAGE 2: NLP Evaluation — score the answer
 # ----------------------------------------------------------------------
 def evaluate_answer(question: str, answer: str) -> str:
-	llm = load_evaluator()
 	prompt = (
 		f"You are an interview coach. Question: {question}\n"
 		f"Candidate's answer: {answer}\n"
@@ -75,8 +83,7 @@ def evaluate_answer(question: str, answer: str) -> str:
 		f"Then give one short sentence of feedback. "
 		f"Format exactly like: Relevance: X, Clarity: X, Grammar: X. Feedback: ..."
 	)
-	out = llm(prompt, max_new_tokens=120, do_sample=False)
-	return out[0]["generated_text"].strip()
+	return generate_text(prompt, max_new_tokens=120, do_sample=False)
 
 
 def fallback_scores(question: str, answer: str) -> dict:
@@ -113,15 +120,13 @@ def parse_scores(eval_text: str, question: str, answer: str) -> dict:
 # STAGE 3: Text Generation — suggest an improved answer
 # ----------------------------------------------------------------------
 def generate_improved_answer(question: str, answer: str) -> str:
-	llm = load_evaluator()
 	prompt = (
 		f"Interview question: {question}\n"
 		f"Candidate's original answer: {answer}\n"
 		f"Rewrite this as a stronger, more confident, well-structured interview answer "
 		f"in 3-4 sentences."
 	)
-	out = llm(prompt, max_new_tokens=180, do_sample=True, temperature=0.8, top_p=0.9)
-	return out[0]["generated_text"].strip()
+	return generate_text(prompt, max_new_tokens=180, do_sample=True, temperature=0.8, top_p=0.9)
 
 
 # ----------------------------------------------------------------------
