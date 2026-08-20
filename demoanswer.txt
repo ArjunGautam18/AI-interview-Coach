@@ -1,0 +1,12 @@
+Suggested demo question: "Tell me about yourself."
+
+Expected transcript (approx., what Whisper should produce from demo_answer.mp3):
+"Um so yeah, my name is uh, well, I studied computer science in college and then
+I worked at a couple of companies doing like coding stuff and testing stuff.
+I think I'm pretty good at solving problems and I work well with teams I guess.
+I don't know, I just really want a job where I can learn more things and grow
+my career I think."
+
+This answer was intentionally written a bit rambling/unpolished (filler words,
+vague phrasing) so the "Suggested Improved Answer" stage of the app has
+something meaningful to fix during your demo.
