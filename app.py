@@ -12,9 +12,11 @@ Stage 2 (Evaluation):      google/flan-t5-base  (scores + feedback)
 Stage 3 (Generation):      google/flan-t5-base  (suggests a better answer)
 """
 
+from io import BytesIO
 import re
 from datetime import datetime
 
+import librosa
 import streamlit as st
 from transformers import pipeline
 
@@ -53,8 +55,11 @@ def load_evaluator():
 # STAGE 1: Speech-to-Text
 # ----------------------------------------------------------------------
 def transcribe_audio(audio_file) -> str:
+	audio_file.seek(0)
+	audio_bytes = audio_file.read()
+	audio_waveform, _ = librosa.load(BytesIO(audio_bytes), sr=16000, mono=True)
 	asr = load_whisper()
-	result = asr(audio_file)
+	result = asr({"raw": audio_waveform, "sampling_rate": 16000})
 	return result["text"].strip()
 
 
